@@ -35,8 +35,9 @@ print(f"[*] Connecting to {SERVER_HOST}:{SERVER_PORT}...")
 s.connect((SERVER_HOST, SERVER_PORT))
 print("[+] Connected.")
 
+# receive AES key
 key = s.recv(1024).decode("utf8")
-print("key:",key)
+# print("key:",key)
 cipher = AESCipher(str(key))
 
 
@@ -45,8 +46,9 @@ name = input("Enter your name: ")
 
 def listen_for_messages():
     while True:
-        message = s.recv(1024).decode()
+        message = s.recv(1024)
         message = cipher.decrypt(message)
+        message = message.replace(separator_token, ": ")
         print("\n" + message)
 
 # make a thread that listens for messages to this client & print them
@@ -56,21 +58,21 @@ t.daemon = True
 # start the thread
 t.start()
 
-
-
 while True:
     # input message we want to send to the server
     to_send =  input()
     # a way to exit the program
     if to_send.lower() == 'q':
         break
-    # to_send = cipher.encrypt(to_send)
-    # print(to_send)
+    
     # add the datetime, name & the color of the sender
     date_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
     to_send = f"{client_color}[{date_now}] {name}{separator_token}{to_send}{Fore.RESET}"
+    
+    to_send = cipher.encrypt(to_send)
+    
     # finally, send the message
-    s.send(to_send.encode())
+    s.send(to_send)
 
 # close the socket
 s.close()

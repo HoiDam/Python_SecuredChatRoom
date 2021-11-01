@@ -4,7 +4,7 @@ COMP4334 Internet Security Final Project
 ---
 ## Library
 1. colorama
-2. pycrpytodome
+2. pycryptodome
 
 
 ---

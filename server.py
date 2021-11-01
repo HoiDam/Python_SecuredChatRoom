@@ -1,6 +1,9 @@
 import socket
 import random
 from threading import Thread
+# -----
+from _aes import AESCipher
+# -----
 
 def listen_for_client(cs):
     """
@@ -10,20 +13,15 @@ def listen_for_client(cs):
     while True:
         try:
             # keep listening for a message from `cs` socket
-            msg = cs.recv(1024).decode()
+            msg = cs.recv(1024)
         except Exception as e:
             # client no longer connected
             # remove it from the set
             print(f"[!] Error: {e}")
             client_sockets.remove(cs)
-        else:
-            # if we received a message, replace the <SEP> 
-            # token with ": " for nice printing
-            msg = msg.replace(separator_token, ": ")
-        # iterate over all connected sockets
         for client_socket in client_sockets:
             # and send the message
-            client_socket.send(msg.encode())
+            client_socket.send(msg)
 
 # server's IP address
 SERVER_HOST = "0.0.0.0"
@@ -32,6 +30,7 @@ separator_token = "<SEP>" # we will use this to separate the client name & messa
 
 # AES implementation
 key = str(random.randint(1,10000))
+# print(key)
 
 # initialize list/set of all connected client's sockets
 client_sockets = set()
