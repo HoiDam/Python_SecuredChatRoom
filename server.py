@@ -1,4 +1,5 @@
 import socket
+import random
 from threading import Thread
 
 def listen_for_client(cs):
@@ -29,6 +30,9 @@ SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 5002 # port we want to use
 separator_token = "<SEP>" # we will use this to separate the client name & message
 
+# AES implementation
+key = str(random.randint(1,10000))
+
 # initialize list/set of all connected client's sockets
 client_sockets = set()
 # create a TCP socket
@@ -54,6 +58,7 @@ while True:
     t.daemon = True
     # start the thread
     t.start()
+    client_socket.send(key.encode("utf8"))
 
 # close client sockets
 for cs in client_sockets:

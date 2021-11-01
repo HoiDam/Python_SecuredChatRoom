@@ -4,6 +4,10 @@ from threading import Thread
 from datetime import datetime
 from colorama import Fore, init, Back
 
+# -----
+from _aes import AESCipher
+# -----
+
 # init colors
 init()
 
@@ -31,12 +35,18 @@ print(f"[*] Connecting to {SERVER_HOST}:{SERVER_PORT}...")
 s.connect((SERVER_HOST, SERVER_PORT))
 print("[+] Connected.")
 
+key = s.recv(1024).decode("utf8")
+print("key:",key)
+cipher = AESCipher(str(key))
+
+
 # prompt the client for a name
 name = input("Enter your name: ")
 
 def listen_for_messages():
     while True:
         message = s.recv(1024).decode()
+        message = cipher.decrypt(message)
         print("\n" + message)
 
 # make a thread that listens for messages to this client & print them
@@ -46,12 +56,16 @@ t.daemon = True
 # start the thread
 t.start()
 
+
+
 while True:
     # input message we want to send to the server
     to_send =  input()
     # a way to exit the program
     if to_send.lower() == 'q':
         break
+    # to_send = cipher.encrypt(to_send)
+    # print(to_send)
     # add the datetime, name & the color of the sender
     date_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
     to_send = f"{client_color}[{date_now}] {name}{separator_token}{to_send}{Fore.RESET}"
