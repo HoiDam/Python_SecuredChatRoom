@@ -1,9 +1,14 @@
 import socket
 import random
+import sys
 from threading import Thread
+
 # -----
 from _aes import AESCipher
 # -----
+
+# AES implementation
+password = sys.argv[2] #password
 
 def listen_for_client(cs):
     """
@@ -28,7 +33,7 @@ SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 5002 # port we want to use
 separator_token = "<SEP>" # we will use this to separate the client name & message
 
-# AES implementation
+
 key = str(random.randint(1,10000))
 # print(key)
 
@@ -51,13 +56,23 @@ while True:
     print(f"[+] {client_address} connected.")
     # add the new connected client to connected sockets
     client_sockets.add(client_socket)
+
+    clientPW = None
+    clientPW = client_socket.recv(1024).decode()
+    if clientPW == password:
+        client_socket.send(key.encode("utf8"))
+    else:
+        client_socket.send("Failed".encode("utf8"))
+        client_sockets.remove(clientPW)
+
     # start a new thread that listens for each client's messages
     t = Thread(target=listen_for_client, args=(client_socket,))
     # make the thread daemon so it ends whenever the main thread ends
     t.daemon = True
     # start the thread
     t.start()
-    client_socket.send(key.encode("utf8"))
+    
+    
 
 # close client sockets
 for cs in client_sockets:
