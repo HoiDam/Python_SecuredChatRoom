@@ -19,6 +19,8 @@ def listen_for_client(cs):
         try:
             # keep listening for a message from `cs` socket
             msg = cs.recv(1024)
+            host, port = cs.getpeername()
+            print(host,":",port,"(Encrypted msg demo): ",msg)
         except Exception as e:
             # client no longer connected
             # remove it from the set
