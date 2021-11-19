@@ -49,7 +49,7 @@ key = s.recv(1024).decode("utf8")
 # print("key:",key)
 
 if key == "Failed":
-    print("[-] Wrong Crudential")
+    print("[-] Wrong Credentials")
 else:
     print("[+] Connected.")
     cipher = AESCipher(str(key))
