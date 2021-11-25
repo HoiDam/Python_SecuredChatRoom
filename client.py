@@ -3,16 +3,20 @@ import random
 import time
 from threading import Thread
 from datetime import datetime
+from Crypto import PublicKey
 from colorama import Fore, init, Back
+import json
+import base64
 
 # -----
 from _aes import AESCipher
+from _rsa import RSACipher
 # -----
 
 def listen_for_messages():
     while True:
         message = s.recv(1024)
-        message = cipher.decrypt(message)
+        message = AESWorker.decrypt(message)
         message = message.replace(separator_token, ": ")
         print("\n" + message)
 
@@ -35,51 +39,53 @@ client_color = random.choice(colors)
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 5002 # server's port
 separator_token = "<SEP>" # we will use this to separate the client name & message
+RSAWorker = RSACipher()
 
-password = input("[?] Password: ")
+if __name__== "__main__":
+    password = input("[?] Password: ")
+    LoginPayload = {}
+    LoginPayload["PW"] = str(password)
+    LoginPayload["OneTimeKey"] = str(random.randint(1,10000))
+    # print(json.dumps(LoginPayload))
 
-# initialize TCP socket
-s = socket.socket()
-print(f"[*] Connecting to {SERVER_HOST}:{SERVER_PORT}...")
-# connect to the server
-s.connect((SERVER_HOST, SERVER_PORT))
+    # initialize TCP socket
+    s = socket.socket()
+    print(f"[*] Connecting to {SERVER_HOST}:{SERVER_PORT}...")
+    # connect to the server
+    s.connect((SERVER_HOST, SERVER_PORT))
 
-s.send(password.encode("utf8"))
-key = s.recv(1024).decode("utf8")
-# print("key:",key)
+    # Getting welcome payload
+    WelcomePayload = json.loads(s.recv(1024).decode("utf8"))
+    # print(WelcomePayload)
 
-if key == "Failed":
-    print("[-] Wrong Credentials")
-else:
-    print("[+] Connected.")
-    cipher = AESCipher(str(key))
+    ServerPublicKey = WelcomePayload['PublicKey']
+    RSAWorker.PublicKeyImport(ServerPublicKey)
+    s.send(RSAWorker.rsa_encode(json.dumps(LoginPayload)).encode("utf-8"))
+    # print(LoginPayload)
 
+    LoginAESWorker = AESCipher(str(LoginPayload["OneTimeKey"]))
+    Payload = json.loads(LoginAESWorker.decrypt(s.recv(1024).decode("utf8")))
+    if Payload["Message"] == "Fail Login":
+        print("[-] Wrong PW")
+        exit()
+    else:
+        print("[+] Connected")
+        AESWorker = AESCipher(str(Payload["SessionKey"]))
 
-    # prompt the client for a name
     name = input("[?] Enter your name: ")
-
-    # make a thread that listens for messages to this client & print them
     t = Thread(target=listen_for_messages)
-    # make the thread daemon so it ends whenever the main thread ends
     t.daemon = True
-    # start the thread
     t.start()
 
     while True:
-        # input message we want to send to the server
-        to_send =  input()
-        # a way to exit the program
-        if to_send.lower() == 'q':
+        Message = input()
+        if Message.lower() == 'q':
             break
-        
-        # add the datetime, name & the color of the sender
+
         date_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
-        to_send = f"{client_color}[{date_now}] {name}{separator_token}{to_send}{Fore.RESET}"
+        to_send = f"{client_color}[{date_now}] {name}{separator_token}{Message}{Fore.RESET}"
         
-        to_send = cipher.encrypt(to_send)
-        
-        # finally, send the message
+        to_send = AESWorker.encrypt(to_send)
         s.send(to_send)
 
-    # close the socket
     s.close()

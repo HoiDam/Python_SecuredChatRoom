@@ -2,13 +2,17 @@ import socket
 import random
 import sys
 from threading import Thread
+import json
+import base64
 
 # -----
 from _aes import AESCipher
+from _rsa import RSACipher
 # -----
 
 # AES implementation
-password = sys.argv[2] #password
+# password = sys.argv[2] #password
+password = "123"
 
 def listen_for_client(cs):
     """
@@ -35,49 +39,46 @@ SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 5002 # port we want to use
 separator_token = "<SEP>" # we will use this to separate the client name & message
 
+RSAWorker = RSACipher()
+RSAWorker.GenerateKey()
+SessionKey = str(random.randint(1,10000))   # For message encrypte
 
-key = str(random.randint(1,10000))
-# print(key)
+if __name__== "__main__":
+    client_sockets = set()
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((SERVER_HOST, SERVER_PORT))
+    s.listen(5)
 
-# initialize list/set of all connected client's sockets
-client_sockets = set()
-# create a TCP socket
-s = socket.socket()
-# make the port as reusable port
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-# bind the socket to the address we specified
-s.bind((SERVER_HOST, SERVER_PORT))
-# listen for upcoming connections
-s.listen(5)
-print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
+    print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
+    # print("[DEBUG]{}".format(RSAWorker.publicKey))
 
+    while True:
+        client_socket, client_address = s.accept()
+        print(f"[+] {client_address} connected.")
+        client_sockets.add(client_socket)
 
-while True:
-    # we keep listening for new connections all the time
-    client_socket, client_address = s.accept()
-    print(f"[+] {client_address} connected.")
-    # add the new connected client to connected sockets
-    client_sockets.add(client_socket)
+        WelcomePayload = {}
+        WelcomePayload["Message"] = "Welcome"
+        WelcomePayload["PublicKey"] = RSAWorker.publicKey
+        client_socket.send(json.dumps(WelcomePayload).encode("utf8"))
 
-    clientPW = None
-    clientPW = client_socket.recv(1024).decode()
-    if clientPW == password:
-        client_socket.send(key.encode("utf8"))
-    else:
-        client_socket.send("Failed".encode("utf8"))
-        client_sockets.remove(clientPW)
+        LoginPayload_Encrypted = client_socket.recv(2048).decode()
+        LoginPayload = json.loads(RSAWorker.rsa_decode(LoginPayload_Encrypted))
+        # print("[DEBUG]{}".format(RSAWorker.rsa_decode(LoginPayload_Encrypted)))
 
-    # start a new thread that listens for each client's messages
-    t = Thread(target=listen_for_client, args=(client_socket,))
-    # make the thread daemon so it ends whenever the main thread ends
-    t.daemon = True
-    # start the thread
-    t.start()
-    
-    
+        Payload = {}
+        if password == LoginPayload["PW"]:
+            Payload["SessionKey"] = SessionKey
+            Payload["Message"] = "Success Login"
+            clientAESWorker = AESCipher(str(LoginPayload["OneTimeKey"]))
+            print(json.dumps(Payload))
+            print(clientAESWorker.encrypt(json.dumps(Payload)))
+            client_socket.send(clientAESWorker.encrypt(json.dumps(Payload)))
+        else:
+            Payload["Message"] = "Fail Login"
+            client_socket.send(json.dumps(Payload).encode("utf8"))
 
-# close client sockets
-for cs in client_sockets:
-    cs.close()
-# close server socket
-s.close()
+        t = Thread(target=listen_for_client, args=(client_socket,))
+        t.daemon = True
+        t.start()
