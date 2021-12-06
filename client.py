@@ -67,6 +67,7 @@ if __name__== "__main__":
     Payload = json.loads(LoginAESWorker.decrypt(s.recv(1024).decode("utf8")))
     if Payload["Message"] == "Fail Login":
         print("[-] Wrong PW")
+        s.close()
         exit()
     else:
         print("[+] Connected")

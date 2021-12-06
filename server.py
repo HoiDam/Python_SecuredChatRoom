@@ -78,7 +78,12 @@ if __name__== "__main__":
         else:
             Payload["Message"] = "Fail Login"
             client_socket.send(json.dumps(Payload).encode("utf8"))
+            client_socket = None
 
-        t = Thread(target=listen_for_client, args=(client_socket,))
-        t.daemon = True
-        t.start()
+        if client_socket is not None:
+            t = Thread(target=listen_for_client, args=(client_socket,))
+            t.daemon = True
+            t.start()
+        else:
+            print(f"[-] {client_address} Fail login.")
+
