@@ -42,11 +42,7 @@ separator_token = "<SEP>" # we will use this to separate the client name & messa
 RSAWorker = RSACipher()
 
 if __name__== "__main__":
-    password = input("[?] Password: ")
-    LoginPayload = {}
-    LoginPayload["PW"] = str(password)
-    LoginPayload["OneTimeKey"] = str(random.randint(1,10000))
-    # print(json.dumps(LoginPayload))
+    
 
     # initialize TCP socket
     s = socket.socket()
@@ -58,6 +54,12 @@ if __name__== "__main__":
     WelcomePayload = json.loads(s.recv(1024).decode("utf8"))
     # print(WelcomePayload)
 
+    password = input("[?] Password: ")
+    LoginPayload = {}
+    LoginPayload["PW"] = str(password)
+    LoginPayload["OneTimeKey"] = str(random.randint(1,10000))
+    # print(json.dumps(LoginPayload))
+    
     ServerPublicKey = WelcomePayload['PublicKey']
     RSAWorker.PublicKeyImport(ServerPublicKey)
     s.send(RSAWorker.rsa_encode(json.dumps(LoginPayload)).encode("utf-8"))
@@ -89,4 +91,4 @@ if __name__== "__main__":
         to_send = AESWorker.encrypt(to_send)
         s.send(to_send)
 
-    s.close()
+    # s.close()
